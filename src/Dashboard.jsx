@@ -1,442 +1,134 @@
-import { useMemo, useState } from "react";
-import {
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-  PieChart,
-  Pie,
-} from "recharts";
+import { useState, useEffect, useRef } from "react";
+import { Chart, registerables } from "chart.js";
+Chart.register(...registerables);
 
-// ─────────────────────────────────────────────────────────────────────────────
-// DATA
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── DATA ────────────────────────────────────────────────────────────────────
 
 const dailyTraffic = [
-  { date: "Aug 01", requests: 33935 },
-  { date: "Aug 03", requests: 41334 },
-  { date: "Aug 04", requests: 59491 },
-  { date: "Aug 05", requests: 31831 },
-  { date: "Aug 06", requests: 32377 },
-  { date: "Aug 07", requests: 57297 },
-  { date: "Aug 08", requests: 60006 },
-  { date: "Aug 09", requests: 60436 },
-  { date: "Aug 10", requests: 61118 },
-  { date: "Aug 11", requests: 61169 },
-  { date: "Aug 12", requests: 37991 },
-  { date: "Aug 13", requests: 36435 },
-  { date: "Aug 14", requests: 59808 },
-  { date: "Aug 15", requests: 58786 },
-  { date: "Aug 16", requests: 56600 },
-  { date: "Aug 17", requests: 58954 },
-  { date: "Aug 18", requests: 56204 },
-  { date: "Aug 19", requests: 32052 },
-  { date: "Aug 20", requests: 32927 },
-  { date: "Aug 21", requests: 55459 },
-  { date: "Aug 22", requests: 57673 },
-  { date: "Aug 23", requests: 58027 },
-  { date: "Aug 24", requests: 52487 },
-  { date: "Aug 25", requests: 57299 },
-  { date: "Aug 26", requests: 31576 },
-  { date: "Aug 27", requests: 32774 },
-  { date: "Aug 28", requests: 55416 },
-  { date: "Aug 29", requests: 67856 },
-  { date: "Aug 30", requests: 80552 },
-  { date: "Aug 31", requests: 90035 },
+  { date: "Aug 01", r: 33935 }, { date: "Aug 03", r: 41334 }, { date: "Aug 04", r: 59491 },
+  { date: "Aug 05", r: 31831 }, { date: "Aug 06", r: 32377 }, { date: "Aug 07", r: 57297 },
+  { date: "Aug 08", r: 60006 }, { date: "Aug 09", r: 60436 }, { date: "Aug 10", r: 61118 },
+  { date: "Aug 11", r: 61169 }, { date: "Aug 12", r: 37991 }, { date: "Aug 13", r: 36435 },
+  { date: "Aug 14", r: 59808 }, { date: "Aug 15", r: 58786 }, { date: "Aug 16", r: 56600 },
+  { date: "Aug 17", r: 58954 }, { date: "Aug 18", r: 56204 }, { date: "Aug 19", r: 32052 },
+  { date: "Aug 20", r: 32927 }, { date: "Aug 21", r: 55459 }, { date: "Aug 22", r: 57673 },
+  { date: "Aug 23", r: 58027 }, { date: "Aug 24", r: 52487 }, { date: "Aug 25", r: 57299 },
+  { date: "Aug 26", r: 31576 }, { date: "Aug 27", r: 32774 }, { date: "Aug 28", r: 55416 },
+  { date: "Aug 29", r: 67856 }, { date: "Aug 30", r: 80552 }, { date: "Aug 31", r: 90035 },
 ];
 
-const peakHourData = [
-  { hour: "00", requests: 47632 },
-  { hour: "01", requests: 38442 },
-  { hour: "02", requests: 32478 },
-  { hour: "03", requests: 29966 },
-  { hour: "04", requests: 26749 },
-  { hour: "05", requests: 27550 },
-  { hour: "06", requests: 31258 },
-  { hour: "07", requests: 47345 },
-  { hour: "08", requests: 65423 },
-  { hour: "09", requests: 78618 },
-  { hour: "10", requests: 88234 },
-  { hour: "11", requests: 95227 },
-  { hour: "12", requests: 104989 },
-  { hour: "13", requests: 104424 },
-  { hour: "14", requests: 101237 },
-  { hour: "15", requests: 109342 },
-  { hour: "16", requests: 99441 },
-  { hour: "17", requests: 80768 },
-  { hour: "18", requests: 66715 },
-  { hour: "19", requests: 59217 },
-  { hour: "20", requests: 59835 },
-  { hour: "21", requests: 57903 },
-  { hour: "22", requests: 60590 },
-  { hour: "23", requests: 54522 },
+const hourlyData = [
+  { h: "00", r: 47632 }, { h: "01", r: 38442 }, { h: "02", r: 32478 }, { h: "03", r: 29966 },
+  { h: "04", r: 26749 }, { h: "05", r: 27550 }, { h: "06", r: 31258 }, { h: "07", r: 47345 },
+  { h: "08", r: 65423 }, { h: "09", r: 78618 }, { h: "10", r: 88234 }, { h: "11", r: 95227 },
+  { h: "12", r: 104989 }, { h: "13", r: 104424 }, { h: "14", r: 101237 }, { h: "15", r: 109342 },
+  { h: "16", r: 99441 }, { h: "17", r: 80768 }, { h: "18", r: 66715 }, { h: "19", r: 59217 },
+  { h: "20", r: 59835 }, { h: "21", r: 57903 }, { h: "22", r: 60590 }, { h: "23", r: 54522 },
 ];
 
-const topResources = [
-  { url: "/images/nasa-logosmall.gif", count: 97269 },
-  { url: "/images/ksc-logosmall.gif", count: 75278 },
-  { url: "/images/mosaic-logosmall.gif", count: 67349 },
-  { url: "/images/usa-logosmall.gif", count: 66968 },
-  { url: "/images/world-logosmall.gif", count: 66345 },
-  { url: "/images/ksclogo-medium.gif", count: 62663 },
-  { url: "/ksc.html", count: 43629 },
-  { url: "/history/apollo/images/apollo-logo1.gif", count: 37804 },
-  { url: "/images/launch-logo.gif", count: 35116 },
-  { url: "/", count: 30103 },
+const topRes = [
+  { url: "/images/nasa-logosmall.gif", n: 97269 },
+  { url: "/images/ksc-logosmall.gif", n: 75278 },
+  { url: "/images/mosaic-logosmall.gif", n: 67349 },
+  { url: "/images/usa-logosmall.gif", n: 66968 },
+  { url: "/images/world-logosmall.gif", n: 66345 },
+  { url: "/images/ksclogo-medium.gif", n: 62663 },
+  { url: "/ksc.html", n: 43629 },
+  { url: "/history/apollo/images/apollo-logo1.gif", n: 37804 },
+  { url: "/images/launch-logo.gif", n: 35116 },
+  { url: "/", n: 30103 },
 ];
 
-const errorData = [
-  { ip: "155.148.25.4", errors: 44, status: 404 },
-  { ip: "dialip-217.den.mmc.com", errors: 62, status: 404 },
-  { ip: "163.135.192.101", errors: 25, status: 403 },
-  { ip: "piweba3y.prodigy.com", errors: 47, status: 404 },
-  { ip: "204.62.245.32", errors: 37, status: 404 },
-  { ip: "dialup551.chicago.mci.net", errors: 18, status: 404 },
-  { ip: "bass.hooked.net", errors: 18, status: 403 },
-  { ip: "nexus.mlckew.edu.au", errors: 37, status: 404 },
-  { ip: "tty18-23.swipnet.se", errors: 21, status: 403 },
-  { ip: "user36.znet.com", errors: 21, status: 403 },
+const errorIPs = [
+  { ip: "dialip-217.den.mmc.com", e: 62, s: 404 },
+  { ip: "piweba3y.prodigy.com", e: 47, s: 404 },
+  { ip: "155.148.25.4", e: 44, s: 404 },
+  { ip: "204.62.245.32", e: 37, s: 404 },
+  { ip: "nexus.mlckew.edu.au", e: 37, s: 404 },
+  { ip: "163.135.192.101", e: 25, s: 403 },
+  { ip: "tty18-23.swipnet.se", e: 21, s: 403 },
+  { ip: "user36.znet.com", e: 21, s: 403 },
+  { ip: "dialup551.chicago.mci.net", e: 18, s: 404 },
+  { ip: "bass.hooked.net", e: 18, s: 403 },
 ];
 
 const errorStatusSplit = [
-  { name: "404 Not Found", value: 2847, color: "#f59e0b" },
-  { name: "403 Forbidden", value: 142, color: "#ef4444" },
-  { name: "500/501 Server Error", value: 38, color: "#8b5cf6" },
+  { name: "404 Not Found", value: 2847, color: "#d29922" },
+  { name: "403 Forbidden", value: 142, color: "#f85149" },
+  { name: "500/501 Errors", value: 38, color: "#bc8cff" },
 ];
 
-// ─────────────────────────────────────────────────────────────────────────────
-// THEME
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── CONSTANTS ───────────────────────────────────────────────────────────────
 
-const theme = {
-  bg: "#080b10",
-  panel: "#111827",
-  panelAlt: "#0f1117",
-  panelSoft: "#0a0d13",
-  border: "#1f2937",
-  borderSoft: "#273244",
-  text: "#f9fafb",
-  textMuted: "#9ca3af",
-  textSoft: "#6b7280",
-  textFaint: "#4b5563",
-  amber: "#f59e0b",
-  orange: "#fb923c",
-  green: "#22c55e",
-  blue: "#3b82f6",
-  red: "#ef4444",
-  purple: "#8b5cf6",
+const C = {
+  bg: "#0d1117", surface: "#161b22", surface2: "#1c2128",
+  border: "#30363d", text: "#e6edf3", muted: "#7d8590", hint: "#484f58",
+  blue: "#58a6ff", green: "#3fb950", amber: "#d29922",
+  red: "#f85149", purple: "#bc8cff", orange: "#fb923c",
 };
 
-const fonts = {
-  display: "'Syne', sans-serif",
-  body: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-  mono: "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
+const MONO = "'JetBrains Mono', ui-monospace, monospace";
+const SANS = "'Inter', ui-sans-serif, system-ui, sans-serif";
 
 const fmt = (n) =>
-  n >= 1000000
-    ? `${(n / 1000000).toFixed(1)}M`
-    : n >= 1000
-    ? `${(n / 1000).toFixed(0)}K`
-    : `${n}`;
+  n >= 1e6 ? (n / 1e6).toFixed(1) + "M" : n >= 1e3 ? (n / 1e3).toFixed(0) + "K" : "" + n;
 
-const tableHeaderCell = {
-  padding: "12px 18px",
-  textAlign: "left",
-  fontSize: 10,
-  color: theme.textFaint,
-  letterSpacing: "0.12em",
-  textTransform: "uppercase",
-  fontFamily: fonts.mono,
-  fontWeight: 600,
+const weekendIdx = new Set([0, 6, 7, 12, 13, 18, 19, 25, 26]);
+const totalReq = dailyTraffic.reduce((s, d) => s + d.r, 0);
+const peakDay = dailyTraffic.reduce((b, d) => (d.r > b.r ? d : b));
+const peakHour = hourlyData.reduce((b, d) => (d.r > b.r ? d : b));
+const totalTopRes = topRes.reduce((s, d) => s + d.n, 0);
+const wdAvg = Math.round(dailyTraffic.filter((_, i) => !weekendIdx.has(i)).reduce((s, d) => s + d.r, 0) / 21);
+const weAvg = Math.round(dailyTraffic.filter((_, i) => weekendIdx.has(i)).reduce((s, d) => s + d.r, 0) / 9);
+
+// ─── STYLES ──────────────────────────────────────────────────────────────────
+
+const s = {
+  app: { minHeight: "100vh", background: C.bg, color: C.text, fontFamily: SANS, fontSize: 13, lineHeight: 1.6 },
+  header: {
+    background: C.surface, borderBottom: `1px solid ${C.border}`,
+    padding: "0 20px", display: "flex", alignItems: "center",
+    gap: 16, height: 52, position: "sticky", top: 0, zIndex: 50,
+  },
+  logo: { display: "flex", alignItems: "center", gap: 8, fontFamily: MONO, fontSize: 13, fontWeight: 600, color: C.blue },
+  logoIcon: {
+    width: 22, height: 22, background: C.blue, borderRadius: 4,
+    display: "flex", alignItems: "center", justifyContent: "center",
+  },
+  liveBadge: { display: "flex", alignItems: "center", gap: 5, fontFamily: MONO, fontSize: 10, color: C.muted, marginLeft: "auto" },
+  liveDot: { width: 6, height: 6, borderRadius: "50%", background: C.green },
+  nav: { display: "flex", gap: 2 },
+  main: { padding: 20, display: "flex", flexDirection: "column", gap: 16 },
+  panel: { background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: 16 },
+  panelTitle: {
+    fontFamily: MONO, fontSize: 11, fontWeight: 600, textTransform: "uppercase",
+    letterSpacing: "0.1em", color: C.muted, marginBottom: 14,
+    display: "flex", alignItems: "center", gap: 8,
+  },
+  badge: { fontSize: 10, background: C.surface2, color: C.blue, borderRadius: 4, padding: "2px 7px" },
+  kpiRow: (cols = 4) => ({ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 12 }),
+  row2: { display: "grid", gridTemplateColumns: "1.8fr 1fr", gap: 12 },
+  table: { width: "100%", borderCollapse: "collapse" },
+  th: {
+    fontFamily: MONO, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em",
+    color: C.hint, padding: "8px 12px", textAlign: "left",
+    borderBottom: `1px solid ${C.border}`, fontWeight: 500,
+  },
+  td: { padding: "8px 12px", fontSize: 12, borderBottom: `1px solid rgba(48,54,61,0.5)` },
+  monoTd: { padding: "8px 12px", fontSize: 11, fontFamily: MONO, borderBottom: `1px solid rgba(48,54,61,0.5)` },
 };
 
-const tableCell = {
-  padding: "12px 18px",
-  fontSize: 12,
-  color: theme.text,
-  fontFamily: fonts.body,
-};
+// ─── COMPONENTS ──────────────────────────────────────────────────────────────
 
-const cardBase = {
-  background: `linear-gradient(180deg, ${theme.panel} 0%, ${theme.panelAlt} 100%)`,
-  border: `1px solid ${theme.border}`,
-  borderRadius: 14,
-  boxShadow: "0 10px 30px rgba(0,0,0,0.22)",
-};
-
-const chartCard = {
-  ...cardBase,
-  padding: 24,
-};
-
-const axisTick = {
-  fill: theme.textSoft,
-  fontSize: 10,
-  fontFamily: fonts.mono,
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// UI
-// ─────────────────────────────────────────────────────────────────────────────
-
-function GlobalStyles() {
+function LogoIcon() {
   return (
-    <style>{`
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap');
-
-      * { box-sizing: border-box; }
-      html { scroll-behavior: smooth; }
-      body { margin: 0; background: ${theme.bg}; color: ${theme.text}; }
-
-      button, input, select, textarea {
-        font: inherit;
-      }
-
-      ::-webkit-scrollbar { width: 6px; height: 6px; }
-      ::-webkit-scrollbar-track { background: ${theme.panelAlt}; }
-      ::-webkit-scrollbar-thumb { background: #374151; border-radius: 999px; }
-
-      @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.45; }
-      }
-
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(8px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-
-      .fade-in {
-        animation: fadeIn 0.28s ease both;
-      }
-
-      @media (max-width: 1180px) {
-        .overview-grid,
-        .traffic-summary-grid,
-        .error-kpi-grid,
-        .resource-summary-grid {
-          grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-        }
-
-        .overview-charts-grid {
-          grid-template-columns: 1fr !important;
-        }
-      }
-
-      @media (max-width: 820px) {
-        .overview-grid,
-        .traffic-summary-grid,
-        .error-kpi-grid,
-        .resource-summary-grid {
-          grid-template-columns: 1fr !important;
-        }
-
-        .header-row {
-          height: auto !important;
-          padding: 16px 0;
-          align-items: flex-start !important;
-          flex-wrap: wrap;
-          gap: 14px !important;
-        }
-
-        .nav-tabs {
-          width: 100%;
-          flex-wrap: wrap;
-        }
-
-        .wide-table-wrap {
-          overflow-x: auto;
-        }
-      }
-    `}</style>
-  );
-}
-
-function SectionHeader({ title, badge }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-      <h2
-        style={{
-          margin: 0,
-          color: theme.text,
-          fontSize: 14,
-          fontWeight: 800,
-          letterSpacing: "0.04em",
-          textTransform: "uppercase",
-          fontFamily: fonts.display,
-        }}
-      >
-        {title}
-      </h2>
-
-      {badge && (
-        <span
-          style={{
-            background: theme.border,
-            color: theme.amber,
-            borderRadius: 999,
-            padding: "4px 9px",
-            fontSize: 10,
-            fontWeight: 600,
-            letterSpacing: "0.06em",
-            fontFamily: fonts.mono,
-          }}
-        >
-          {badge}
-        </span>
-      )}
-
-      <div style={{ flex: 1, height: 1, background: theme.border }} />
-    </div>
-  );
-}
-
-function StatCard({ label, value, sub, accent = theme.amber, icon }) {
-  return (
-    <div
-      style={{
-        ...cardBase,
-        position: "relative",
-        overflow: "hidden",
-        padding: "20px 22px",
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          inset: "0 auto 0 0",
-          width: 3,
-          background: accent,
-        }}
-      />
-
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: 16,
-        }}
-      >
-        <div>
-          <div
-            style={{
-              marginBottom: 8,
-              color: theme.textSoft,
-              fontSize: 11,
-              fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: "0.12em",
-              fontFamily: fonts.mono,
-            }}
-          >
-            {label}
-          </div>
-
-          <div
-            style={{
-              color: theme.text,
-              fontSize: 30,
-              lineHeight: 1.05,
-              fontWeight: 800,
-              letterSpacing: "-0.03em",
-              fontFamily: fonts.mono,
-            }}
-          >
-            {value}
-          </div>
-
-          {sub && (
-            <div
-              style={{
-                marginTop: 8,
-                color: theme.textMuted,
-                fontSize: 12,
-                fontFamily: fonts.body,
-              }}
-            >
-              {sub}
-            </div>
-          )}
-        </div>
-
-        <div
-          style={{
-            fontSize: 24,
-            lineHeight: 1,
-            opacity: 0.4,
-          }}
-        >
-          {icon}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Panel({ children, style }) {
-  return <div style={{ ...chartCard, ...style }}>{children}</div>;
-}
-
-function CustomTooltip({ active, payload, label }) {
-  if (!active || !payload?.length) return null;
-
-  return (
-    <div
-      style={{
-        background: theme.panelAlt,
-        border: `1px solid ${theme.borderSoft}`,
-        borderRadius: 12,
-        padding: "10px 12px",
-        boxShadow: "0 10px 24px rgba(0,0,0,0.28)",
-      }}
-    >
-      <div
-        style={{
-          marginBottom: 6,
-          color: theme.textMuted,
-          fontSize: 12,
-          fontFamily: fonts.body,
-        }}
-      >
-        {label}
-      </div>
-
-      {payload.map((item, i) => (
-        <div
-          key={i}
-          style={{
-            marginTop: i === 0 ? 0 : 3,
-            color: item.color || theme.amber,
-            fontSize: 12,
-            fontFamily: fonts.body,
-          }}
-        >
-          {item.name}:{" "}
-          <span
-            style={{
-              color: theme.text,
-              fontWeight: 700,
-              fontFamily: fonts.mono,
-            }}
-          >
-            {item.value?.toLocaleString()}
-          </span>
-        </div>
-      ))}
+    <div style={s.logoIcon}>
+      <svg width="12" height="12" viewBox="0 0 12 12" fill={C.bg}>
+        <rect x="0" y="0" width="5" height="5" rx="1" />
+        <rect x="7" y="0" width="5" height="5" rx="1" />
+        <rect x="0" y="7" width="5" height="5" rx="1" />
+        <rect x="7" y="7" width="5" height="5" rx="1" />
+      </svg>
     </div>
   );
 }
@@ -446,18 +138,11 @@ function TabButton({ active, children, onClick }) {
     <button
       onClick={onClick}
       style={{
-        background: active ? theme.border : "transparent",
-        color: active ? theme.amber : "#94a3b8",
-        border: "1px solid transparent",
-        padding: "8px 14px",
-        borderRadius: 8,
-        cursor: "pointer",
-        fontSize: 11,
-        fontWeight: active ? 700 : 500,
-        letterSpacing: "0.08em",
-        textTransform: "uppercase",
-        fontFamily: fonts.mono,
-        transition: "all 0.15s ease",
+        background: active ? "rgba(88,166,255,.12)" : "none",
+        color: active ? C.blue : C.muted,
+        border: "none", padding: "6px 12px", borderRadius: 6,
+        fontFamily: MONO, fontSize: 11, fontWeight: 500, cursor: "pointer",
+        textTransform: "uppercase", letterSpacing: "0.08em",
       }}
     >
       {children}
@@ -465,788 +150,480 @@ function TabButton({ active, children, onClick }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MAIN
-// ─────────────────────────────────────────────────────────────────────────────
+function KpiCard({ label, value, sub, accent = C.blue }) {
+  return (
+    <div style={{
+      background: C.surface, border: `1px solid ${C.border}`,
+      borderRadius: 8, padding: "14px 16px",
+      position: "relative", overflow: "hidden",
+    }}>
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: accent }} />
+      <div style={{ fontFamily: MONO, fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
+        {label}
+      </div>
+      <div style={{ fontFamily: MONO, fontSize: 24, fontWeight: 600, color: C.text, lineHeight: 1 }}>
+        {value}
+      </div>
+      <div style={{ fontSize: 11, color: C.hint, marginTop: 5 }}>{sub}</div>
+    </div>
+  );
+}
 
-export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState("overview");
-  const tabs = ["overview", "traffic", "errors", "resources"];
+function PanelTitle({ children, badge }) {
+  return (
+    <div style={s.panelTitle}>
+      {children}
+      {badge && <span style={s.badge}>{badge}</span>}
+    </div>
+  );
+}
 
-  const totals = useMemo(() => {
-    const totalRequests = dailyTraffic.reduce((sum, d) => sum + d.requests, 0);
-    const peakDay = dailyTraffic.reduce((best, d) =>
-      d.requests > best.requests ? d : best
-    );
-    const peakHour = peakHourData.reduce((best, d) =>
-      d.requests > best.requests ? d : best
-    );
-    const totalErrors = errorData.reduce((sum, d) => sum + d.errors, 0);
+function StatusBadge({ status }) {
+  const map = {
+    404: { bg: "rgba(210,153,34,.12)", color: C.amber },
+    403: { bg: "rgba(248,81,73,.12)", color: C.red },
+    500: { bg: "rgba(188,140,255,.12)", color: C.purple },
+  };
+  const style = map[status] || map[500];
+  return (
+    <span style={{
+      display: "inline-block", padding: "2px 8px", borderRadius: 4,
+      fontFamily: MONO, fontSize: 10, fontWeight: 600,
+      background: style.bg, color: style.color,
+    }}>
+      {status}
+    </span>
+  );
+}
 
-    const weekendIndexes = [0, 6, 7, 12, 13, 18, 19, 25, 26];
-    const weekdayAvg = Math.round(
-      dailyTraffic
-        .filter((_, i) => !weekendIndexes.includes(i))
-        .reduce((sum, d) => sum + d.requests, 0) / 21
-    );
-    const weekendAvg = Math.round(
-      dailyTraffic
-        .filter((_, i) => weekendIndexes.includes(i))
-        .reduce((sum, d) => sum + d.requests, 0) / 9
-    );
+function SeverityBar({ count, status }) {
+  const filled = Math.ceil(count / 15);
+  const onColor = status === 403 ? C.red : C.amber;
+  return (
+    <div style={{ display: "flex", gap: 3 }}>
+      {Array.from({ length: 5 }, (_, i) => (
+        <div key={i} style={{
+          width: 12, height: 4, borderRadius: 2,
+          background: i < filled ? onColor : C.border,
+        }} />
+      ))}
+    </div>
+  );
+}
 
-    const totalTopResources = topResources.reduce((sum, d) => sum + d.count, 0);
+function Legend({ items }) {
+  return (
+    <div style={{ display: "flex", gap: 16, marginTop: 10, flexWrap: "wrap" }}>
+      {items.map(({ color, label }) => (
+        <div key={label} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: C.muted }}>
+          <div style={{ width: 8, height: 8, borderRadius: 2, background: color }} />
+          {label}
+        </div>
+      ))}
+    </div>
+  );
+}
 
-    const resourceRows = topResources.map((r) => ({
-      ...r,
-      label: r.url.split("/").pop() || "/",
-      pct: ((r.count / totalTopResources) * 100).toFixed(1),
+// ─── CHART HOOK ──────────────────────────────────────────────────────────────
+
+function useChart(id, config, deps = []) {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!ref.current) return;
+    const chart = new Chart(ref.current, config);
+    return () => chart.destroy();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+  return ref;
+}
+
+const axTick = { color: C.hint, font: { family: MONO, size: 10 } };
+const gridColor = "rgba(48,54,61,0.6)";
+
+// ─── TABS ────────────────────────────────────────────────────────────────────
+
+function Overview() {
+  const c1 = useRef(null);
+  const c2 = useRef(null);
+  const c3 = useRef(null);
+
+  useEffect(() => {
+    const charts = [];
+
+    charts.push(new Chart(c1.current, {
+      type: "line",
+      data: {
+        labels: dailyTraffic.map((d) => d.date),
+        datasets: [{
+          label: "Requests", data: dailyTraffic.map((d) => d.r),
+          borderColor: C.blue, backgroundColor: "rgba(88,166,255,.08)",
+          borderWidth: 1.5, pointRadius: 0, tension: 0.35, fill: true,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { ...axTick, maxRotation: 0, autoSkip: true, maxTicksLimit: 8 }, grid: { color: "rgba(48,54,61,.3)" }, border: { display: false } },
+          y: { ticks: { ...axTick, callback: (v) => fmt(v) }, grid: { color: gridColor }, border: { display: false } },
+        },
+      },
     }));
 
-    return {
-      totalRequests,
-      peakDay,
-      peakHour,
-      totalErrors,
-      weekdayAvg,
-      weekendAvg,
-      totalTopResources,
-      resourceRows,
-    };
+    charts.push(new Chart(c2.current, {
+      type: "doughnut",
+      data: {
+        labels: errorStatusSplit.map((d) => d.name),
+        datasets: [{
+          data: errorStatusSplit.map((d) => d.value),
+          backgroundColor: errorStatusSplit.map((d) => d.color),
+          borderWidth: 2, borderColor: C.surface,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: "62%",
+        plugins: { legend: { display: false } },
+      },
+    }));
+
+    charts.push(new Chart(c3.current, {
+      type: "bar",
+      data: {
+        labels: hourlyData.map((d) => d.h + "h"),
+        datasets: [{
+          label: "Requests",
+          data: hourlyData.map((d) => d.r),
+          backgroundColor: hourlyData.map((d) =>
+            d.r === peakHour.r ? C.amber : d.r > 80000 ? C.orange : d.r > 60000 ? C.blue : C.border
+          ),
+          borderRadius: 3, borderSkipped: false,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: axTick, grid: { display: false }, border: { display: false } },
+          y: { ticks: { ...axTick, callback: (v) => fmt(v) }, grid: { color: gridColor }, border: { display: false } },
+        },
+      },
+    }));
+
+    return () => charts.forEach((c) => c.destroy());
   }, []);
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: theme.bg,
-        color: theme.text,
-        fontFamily: fonts.body,
-        lineHeight: 1.5,
-        WebkitFontSmoothing: "antialiased",
-        MozOsxFontSmoothing: "grayscale",
-        textRendering: "optimizeLegibility",
-      }}
-    >
-      <GlobalStyles />
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={s.kpiRow(4)}>
+        <KpiCard label="Total Requests" value={fmt(totalReq)} sub="August 1995" accent={C.blue} />
+        <KpiCard label="Peak Day" value={peakDay.r.toLocaleString()} sub={peakDay.date} accent={C.green} />
+        <KpiCard label="Peak Hour" value={peakHour.r.toLocaleString()} sub={`Hour ${peakHour.h}:00 UTC`} accent={C.amber} />
+        <KpiCard label="Error Events" value="330" sub="Top IPs combined" accent={C.red} />
+      </div>
 
-      <header
-        style={{
-          position: "sticky",
-          top: 0,
-          zIndex: 50,
-          borderBottom: `1px solid ${theme.border}`,
-          background: "rgba(8, 11, 16, 0.92)",
-          backdropFilter: "blur(10px)",
-        }}
-      >
-        <div
-          className="header-row"
-          style={{
-            maxWidth: 1400,
-            margin: "0 auto",
-            padding: "0 24px",
-            display: "flex",
-            alignItems: "center",
-            gap: 28,
-            height: 64,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            
-
-            <div
-              style={{
-                fontFamily: fonts.display,
-                fontSize: 16,
-                fontWeight: 800,
-                letterSpacing: "-0.03em",
-              }}
-            >
-              
-            </div>
+      <div style={s.row2}>
+        <div style={s.panel}>
+          <PanelTitle badge="30d">Daily Traffic Volume</PanelTitle>
+          <div style={{ position: "relative", height: 220 }}>
+            <canvas ref={c1} role="img" aria-label="Daily traffic volume chart for August 1995" />
           </div>
-
-          <div
-            style={{
-              marginLeft: "auto",
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-            }}
-          >
-            <div
-              style={{
-                width: 7,
-                height: 7,
-                borderRadius: "50%",
-                background: theme.green,
-                animation: "pulse 2s infinite",
-              }}
-            />
-            <span
-              style={{
-                color: theme.textSoft,
-                fontSize: 10,
-                letterSpacing: "0.08em",
-                fontFamily: fonts.mono,
-              }}
-            >
-              LIVE · AUG 1995
-            </span>
-          </div>
-
-          <nav className="nav-tabs" style={{ display: "flex", gap: 6 }}>
-            {tabs.map((tab) => (
-              <TabButton
-                key={tab}
-                active={activeTab === tab}
-                onClick={() => setActiveTab(tab)}
-              >
-                {tab}
-              </TabButton>
-            ))}
-          </nav>
         </div>
+
+        <div style={s.panel}>
+          <PanelTitle>Error Distribution</PanelTitle>
+          <div style={{ position: "relative", height: 160 }}>
+            <canvas ref={c2} role="img" aria-label="Doughnut chart showing error type distribution" />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
+            {errorStatusSplit.map((item) => (
+              <div key={item.name} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
+                <div style={{ width: 8, height: 8, borderRadius: 2, background: item.color, flexShrink: 0 }} />
+                <span style={{ flex: 1, color: C.muted }}>{item.name}</span>
+                <span style={{ fontFamily: MONO, fontWeight: 600 }}>{item.value.toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div style={s.panel}>
+        <PanelTitle badge="24h">Hourly Request Pattern</PanelTitle>
+        <div style={{ position: "relative", height: 180 }}>
+          <canvas ref={c3} role="img" aria-label="Bar chart of hourly request distribution" />
+        </div>
+        <Legend items={[
+          { color: C.amber, label: "Peak" },
+          { color: C.orange, label: "High (>80K)" },
+          { color: C.blue, label: "Medium (>60K)" },
+          { color: C.border, label: "Low" },
+        ]} />
+      </div>
+    </div>
+  );
+}
+
+function Traffic() {
+  const c4 = useRef(null);
+  const c5 = useRef(null);
+
+  useEffect(() => {
+    const charts = [];
+    charts.push(new Chart(c4.current, {
+      type: "line",
+      data: {
+        labels: dailyTraffic.map((d) => d.date),
+        datasets: [{
+          label: "Requests", data: dailyTraffic.map((d) => d.r),
+          borderColor: C.blue, backgroundColor: "rgba(88,166,255,.08)",
+          borderWidth: 1.5, pointRadius: 2, pointBackgroundColor: C.blue,
+          tension: 0.35, fill: true,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { ...axTick, maxRotation: 45 }, grid: { color: "rgba(48,54,61,.3)" }, border: { display: false } },
+          y: { ticks: { ...axTick, callback: (v) => fmt(v) }, grid: { color: gridColor }, border: { display: false } },
+        },
+      },
+    }));
+
+    charts.push(new Chart(c5.current, {
+      type: "line",
+      data: {
+        labels: hourlyData.map((d) => d.h + ":00"),
+        datasets: [{
+          label: "Requests", data: hourlyData.map((d) => d.r),
+          borderColor: C.green, backgroundColor: "rgba(63,185,80,.07)",
+          borderWidth: 1.5, pointRadius: 0, tension: 0.4, fill: true,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: axTick, grid: { color: "rgba(48,54,61,.3)" }, border: { display: false } },
+          y: { ticks: { ...axTick, callback: (v) => fmt(v) }, grid: { color: gridColor }, border: { display: false } },
+        },
+      },
+    }));
+
+    return () => charts.forEach((c) => c.destroy());
+  }, []);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={s.panel}>
+        <PanelTitle badge={`${dailyTraffic.length} days`}>Daily Request Volume — August 1995</PanelTitle>
+        <div style={{ position: "relative", height: 280 }}>
+          <canvas ref={c4} role="img" aria-label="Daily request volume area chart for August 1995" />
+        </div>
+      </div>
+
+      <div style={s.panel}>
+        <PanelTitle>Hourly Breakdown</PanelTitle>
+        <div style={{ position: "relative", height: 220 }}>
+          <canvas ref={c5} role="img" aria-label="Hourly request breakdown line chart" />
+        </div>
+      </div>
+
+      <div style={s.kpiRow(3)}>
+        <KpiCard label="Total Aug Requests" value={fmt(totalReq)} sub="Sum of 30 days" accent={C.blue} />
+        <KpiCard label="Avg Weekday Traffic" value={fmt(wdAvg)} sub="Mon–Fri only" accent={C.green} />
+        <KpiCard label="Avg Weekend Traffic" value={fmt(weAvg)} sub="Sat–Sun avg" accent={C.amber} />
+      </div>
+    </div>
+  );
+}
+
+function Errors() {
+  const c6 = useRef(null);
+
+  useEffect(() => {
+    const chart = new Chart(c6.current, {
+      type: "bar",
+      indexAxis: "y",
+      data: {
+        labels: errorIPs.map((d) => d.ip),
+        datasets: [{
+          label: "Error Count",
+          data: errorIPs.map((d) => d.e),
+          backgroundColor: errorIPs.map((d) => (d.s === 403 ? C.red : C.amber)),
+          borderRadius: 3, borderSkipped: false,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: axTick, grid: { color: gridColor }, border: { display: false } },
+          y: { ticks: { ...axTick, font: { family: MONO, size: 9 } }, grid: { display: false }, border: { display: false } },
+        },
+      },
+    });
+    return () => chart.destroy();
+  }, []);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={s.kpiRow(3)}>
+        <KpiCard label="404 Not Found" value="2,847" sub="Most common error" accent={C.amber} />
+        <KpiCard label="403 Forbidden" value="142" sub="Access violations" accent={C.red} />
+        <KpiCard label="500/501 Errors" value="38" sub="Server failures" accent={C.purple} />
+      </div>
+
+      <div style={s.panel}>
+        <PanelTitle badge={`${errorIPs.length} hosts`}>Top Error-Generating Hosts</PanelTitle>
+        <div style={{ position: "relative", height: errorIPs.length * 42 + 60 }}>
+          <canvas ref={c6} role="img" aria-label="Horizontal bar chart of top error-generating IPs" />
+        </div>
+      </div>
+
+      <div style={{ ...s.panel, padding: 0, overflow: "hidden" }}>
+        <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}` }}>
+          <PanelTitle>Error Log Details</PanelTitle>
+        </div>
+        <table style={s.table}>
+          <thead>
+            <tr>
+              {["IP / Hostname", "HTTP Status", "Error Count", "Severity"].map((h) => (
+                <th key={h} style={s.th}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {errorIPs.map((row, i) => (
+              <tr key={i} style={{ background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,.01)" }}>
+                <td style={s.monoTd}>{row.ip}</td>
+                <td style={s.td}><StatusBadge status={row.s} /></td>
+                <td style={{ ...s.monoTd, fontWeight: 600 }}>{row.e}</td>
+                <td style={s.td}><SeverityBar count={row.e} status={row.s} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function Resources() {
+  const c7 = useRef(null);
+
+  useEffect(() => {
+    const chart = new Chart(c7.current, {
+      type: "bar",
+      indexAxis: "y",
+      data: {
+        labels: topRes.map((d) => d.url.split("/").pop() || "/"),
+        datasets: [{
+          label: "Requests",
+          data: topRes.map((d) => d.n),
+          backgroundColor: C.amber,
+          borderRadius: 3, borderSkipped: false,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { ...axTick, callback: (v) => fmt(v) }, grid: { color: gridColor }, border: { display: false } },
+          y: { ticks: { ...axTick, font: { family: MONO, size: 9 } }, grid: { display: false }, border: { display: false } },
+        },
+      },
+    });
+    return () => chart.destroy();
+  }, []);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={s.panel}>
+        <PanelTitle badge="Aug 1995">Top 10 Most Accessed Resources</PanelTitle>
+        <div style={{ position: "relative", height: topRes.length * 36 + 60 }}>
+          <canvas ref={c7} role="img" aria-label="Horizontal bar chart of top 10 most accessed resources" />
+        </div>
+      </div>
+
+      <div style={s.panel}>
+        <PanelTitle>Resource Access Log</PanelTitle>
+        {topRes.map((d, i) => {
+          const pct = ((d.n / totalTopRes) * 100).toFixed(1);
+          return (
+            <div key={d.url} style={{
+              display: "flex", alignItems: "center", gap: 10, padding: "5px 0",
+              borderBottom: i < topRes.length - 1 ? `1px solid rgba(48,54,61,.4)` : "none",
+            }}>
+              <span style={{ fontFamily: MONO, fontSize: 10, color: C.hint, width: 22, flexShrink: 0 }}>#{i + 1}</span>
+              <span style={{ fontFamily: MONO, fontSize: 11, color: C.blue, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={d.url}>{d.url}</span>
+              <div style={{ width: 80, flexShrink: 0, background: C.surface2, borderRadius: 3, height: 3, overflow: "hidden" }}>
+                <div style={{ width: pct + "%", height: "100%", borderRadius: 3, background: C.amber }} />
+              </div>
+              <span style={{ fontFamily: MONO, fontSize: 11, fontWeight: 600, width: 56, textAlign: "right", flexShrink: 0 }}>{d.n.toLocaleString()}</span>
+              <span style={{ fontSize: 10, color: C.hint, width: 34, textAlign: "right", flexShrink: 0 }}>{pct}%</span>
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={s.kpiRow(3)}>
+        <KpiCard label="#1 Resource" value="97,269" sub="/images/nasa-logosmall.gif" accent={C.amber} />
+        <KpiCard label="Top 10 Total" value={fmt(totalTopRes)} sub="Combined requests" accent={C.blue} />
+        <KpiCard label="Homepage Rank" value="#10" sub={'"/" among top resources'} accent={C.green} />
+      </div>
+    </div>
+  );
+}
+
+// ─── APP ─────────────────────────────────────────────────────────────────────
+
+const TABS = ["overview", "traffic", "errors", "resources"];
+const TAB_COMPONENTS = { overview: Overview, traffic: Traffic, errors: Errors, resources: Resources };
+
+export default function Dashboard() {
+  const [activeTab, setActiveTab] = useState("overview");
+  const TabComponent = TAB_COMPONENTS[activeTab];
+
+  return (
+    <div style={s.app}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: #0d1117; }
+        button { cursor: pointer; transition: background .15s, color .15s; }
+        button:hover { background: rgba(255,255,255,.06) !important; }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+        .live-dot { animation: blink 2s infinite; }
+        @media (max-width: 900px) {
+          .kpi-row-4 { grid-template-columns: repeat(2, 1fr) !important; }
+          .kpi-row-3 { grid-template-columns: repeat(2, 1fr) !important; }
+          .row2 { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 600px) {
+          .kpi-row-4, .kpi-row-3 { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
+
+      <header style={s.header}>
+        <div style={s.logo}>
+          <LogoIcon />
+          LogAnalyzer
+        </div>
+        <div style={s.liveBadge}>
+          <div className="live-dot" style={s.liveDot} />
+          AUG 1995
+        </div>
+        <nav style={s.nav}>
+          {TABS.map((tab) => (
+            <TabButton key={tab} active={activeTab === tab} onClick={() => setActiveTab(tab)}>
+              {tab}
+            </TabButton>
+          ))}
+        </nav>
       </header>
 
-      <main
-        className="fade-in"
-        style={{
-          maxWidth: 1400,
-          margin: "0 auto",
-          padding: "28px 24px 48px",
-        }}
-      >
-        {activeTab === "overview" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
-            <div
-              className="overview-grid"
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-                gap: 16,
-              }}
-            >
-              <StatCard
-                label="Total Requests"
-                value={fmt(totals.totalRequests)}
-                sub="Aug 1995"
-                icon="📊"
-                accent={theme.amber}
-              />
-              <StatCard
-                label="Peak Day"
-                value={totals.peakDay.requests.toLocaleString()}
-                sub={totals.peakDay.date}
-                icon="📈"
-                accent={theme.green}
-              />
-              <StatCard
-                label="Peak Hour"
-                value={totals.peakHour.requests.toLocaleString()}
-                sub={`Hour ${totals.peakHour.hour}:00 UTC`}
-                icon="⏱"
-                accent={theme.blue}
-              />
-              <StatCard
-                label="Error Events"
-                value={totals.totalErrors}
-                sub="Across top IPs"
-                icon="⚠️"
-                accent={theme.red}
-              />
-            </div>
-
-            <div
-              className="overview-charts-grid"
-              style={{
-                display: "grid",
-                gridTemplateColumns: "2fr 1fr",
-                gap: 20,
-              }}
-            >
-              <Panel>
-                <SectionHeader title="Daily Traffic Volume" badge="30d" />
-                <ResponsiveContainer width="100%" height={240}>
-                  <AreaChart data={dailyTraffic} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="overviewTrafficFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={theme.amber} stopOpacity={0.28} />
-                        <stop offset="95%" stopColor={theme.amber} stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="2 4" stroke={theme.border} />
-                    <XAxis
-                      dataKey="date"
-                      tick={axisTick}
-                      tickLine={false}
-                      axisLine={false}
-                      interval={4}
-                    />
-                    <YAxis
-                      tick={axisTick}
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={fmt}
-                      width={44}
-                    />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Area
-                      type="monotone"
-                      dataKey="requests"
-                      name="Requests"
-                      stroke={theme.amber}
-                      strokeWidth={2.25}
-                      fill="url(#overviewTrafficFill)"
-                      dot={false}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </Panel>
-
-              <Panel>
-                <SectionHeader title="Error Distribution" />
-                <ResponsiveContainer width="100%" height={170}>
-                  <PieChart>
-                    <Pie
-                      data={errorStatusSplit}
-                      dataKey="value"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={62}
-                      innerRadius={36}
-                      paddingAngle={3}
-                    >
-                      {errorStatusSplit.map((item, i) => (
-                        <Cell key={i} fill={item.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip content={<CustomTooltip />} />
-                  </PieChart>
-                </ResponsiveContainer>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: 9, marginTop: 8 }}>
-                  {errorStatusSplit.map((item) => (
-                    <div
-                      key={item.name}
-                      style={{ display: "flex", alignItems: "center", gap: 8 }}
-                    >
-                      <div
-                        style={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: 2,
-                          background: item.color,
-                          flexShrink: 0,
-                        }}
-                      />
-                      <span
-                        style={{
-                          flex: 1,
-                          color: theme.textMuted,
-                          fontSize: 12,
-                          fontFamily: fonts.body,
-                        }}
-                      >
-                        {item.name}
-                      </span>
-                      <span
-                        style={{
-                          color: theme.text,
-                          fontSize: 12,
-                          fontWeight: 700,
-                          fontFamily: fonts.mono,
-                        }}
-                      >
-                        {item.value.toLocaleString()}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </Panel>
-            </div>
-
-            <Panel>
-              <SectionHeader title="Hourly Request Pattern" badge="24h" />
-              <ResponsiveContainer width="100%" height={190}>
-                <BarChart data={peakHourData} barGap={2} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="2 4" stroke={theme.border} vertical={false} />
-                  <XAxis
-                    dataKey="hour"
-                    tick={axisTick}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(h) => `${h}h`}
-                  />
-                  <YAxis
-                    tick={axisTick}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={fmt}
-                    width={44}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="requests" name="Requests" radius={[4, 4, 0, 0]}>
-                    {peakHourData.map((d, i) => (
-                      <Cell
-                        key={i}
-                        fill={
-                          d.requests === totals.peakHour.requests
-                            ? theme.amber
-                            : d.requests > 80000
-                            ? theme.orange
-                            : d.requests > 60000
-                            ? theme.blue
-                            : theme.border
-                        }
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-
-              <div
-                style={{
-                  marginTop: 10,
-                  textAlign: "right",
-                  color: theme.textFaint,
-                  fontSize: 11,
-                  fontFamily: fonts.body,
-                }}
-              >
-                🟡 Peak Hour &nbsp; 🟠 High &nbsp; 🔵 Medium &nbsp; ⬛ Low
-              </div>
-            </Panel>
-          </div>
-        )}
-
-        {activeTab === "traffic" && (
-          <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-            <Panel>
-              <SectionHeader
-                title="Daily Request Volume — August 1995"
-                badge={`${dailyTraffic.length} days`}
-              />
-              <ResponsiveContainer width="100%" height={320}>
-                <AreaChart data={dailyTraffic} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="trafficMainFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={theme.blue} stopOpacity={0.32} />
-                      <stop offset="95%" stopColor={theme.blue} stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="2 4" stroke={theme.border} />
-                  <XAxis dataKey="date" tick={axisTick} tickLine={false} axisLine={false} />
-                  <YAxis
-                    tick={axisTick}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={fmt}
-                    width={46}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Area
-                    type="monotone"
-                    dataKey="requests"
-                    name="Requests"
-                    stroke={theme.blue}
-                    strokeWidth={2.5}
-                    fill="url(#trafficMainFill)"
-                    dot={{ fill: theme.blue, r: 2.5, strokeWidth: 0 }}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </Panel>
-
-            <Panel>
-              <SectionHeader title="Hourly Breakdown (All Days Combined)" />
-              <ResponsiveContainer width="100%" height={260}>
-                <LineChart data={peakHourData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="2 4" stroke={theme.border} />
-                  <XAxis
-                    dataKey="hour"
-                    tick={axisTick}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(h) => `${h}:00`}
-                  />
-                  <YAxis
-                    tick={axisTick}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={fmt}
-                    width={46}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Line
-                    type="monotone"
-                    dataKey="requests"
-                    name="Requests"
-                    stroke={theme.green}
-                    strokeWidth={2.5}
-                    dot={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </Panel>
-
-            <div
-              className="traffic-summary-grid"
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-                gap: 16,
-              }}
-            >
-              <StatCard
-                label="Total Aug Requests"
-                value={fmt(totals.totalRequests)}
-                sub="Sum of 30 days"
-                icon="🗄"
-                accent={theme.blue}
-              />
-              <StatCard
-                label="Avg Weekday Traffic"
-                value={fmt(totals.weekdayAvg)}
-                sub="Mon–Fri only"
-                icon="📅"
-                accent={theme.green}
-              />
-              <StatCard
-                label="Weekend Traffic"
-                value={fmt(totals.weekendAvg)}
-                sub="Sat–Sun avg"
-                icon="🛌"
-                accent={theme.amber}
-              />
-            </div>
-          </div>
-        )}
-
-        {activeTab === "errors" && (
-          <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-            <div
-              className="error-kpi-grid"
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-                gap: 16,
-              }}
-            >
-              <StatCard
-                label="404 Not Found"
-                value="2,847"
-                sub="Most common error"
-                icon="🚫"
-                accent={theme.amber}
-              />
-              <StatCard
-                label="403 Forbidden"
-                value="142"
-                sub="Access violations"
-                icon="🔒"
-                accent={theme.red}
-              />
-              <StatCard
-                label="500/501 Errors"
-                value="38"
-                sub="Server failures"
-                icon="💥"
-                accent={theme.purple}
-              />
-            </div>
-
-            <Panel>
-              <SectionHeader title="Top Error-Generating IPs" badge={`${errorData.length} hosts`} />
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={errorData} layout="vertical" margin={{ top: 0, right: 16, left: 12, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="2 4" stroke={theme.border} horizontal={false} />
-                  <XAxis type="number" tick={axisTick} tickLine={false} axisLine={false} />
-                  <YAxis
-                    dataKey="ip"
-                    type="category"
-                    width={210}
-                    tick={{ ...axisTick, fill: theme.textMuted }}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="errors" name="Error Count" radius={[0, 4, 4, 0]}>
-                    {errorData.map((d, i) => (
-                      <Cell
-                        key={i}
-                        fill={
-                          d.status === 403
-                            ? theme.red
-                            : d.status === 404
-                            ? theme.amber
-                            : theme.purple
-                        }
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </Panel>
-
-            <div className="wide-table-wrap" style={{ ...cardBase, overflow: "hidden" }}>
-              <div style={{ padding: "16px 24px", borderBottom: `1px solid ${theme.border}` }}>
-                <SectionHeader title="Error Log Details" />
-              </div>
-
-              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 720 }}>
-                <thead>
-                  <tr style={{ background: theme.panelAlt }}>
-                    {["IP / Hostname", "HTTP Status", "Error Count", "Severity"].map((h) => (
-                      <th key={h} style={tableHeaderCell}>
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {errorData.map((row, i) => (
-                    <tr
-                      key={i}
-                      style={{
-                        borderTop: `1px solid ${theme.border}`,
-                        background: i % 2 === 0 ? "transparent" : theme.panelSoft,
-                      }}
-                    >
-                      <td style={{ ...tableCell, fontFamily: fonts.mono, color: "#e5e7eb" }}>
-                        {row.ip}
-                      </td>
-
-                      <td style={tableCell}>
-                        <span
-                          style={{
-                            display: "inline-block",
-                            padding: "3px 10px",
-                            borderRadius: 999,
-                            fontSize: 10,
-                            fontWeight: 700,
-                            fontFamily: fonts.mono,
-                            background:
-                              row.status === 403
-                                ? "#450a0a"
-                                : row.status === 404
-                                ? "#451a03"
-                                : "#2e1065",
-                            color:
-                              row.status === 403
-                                ? theme.red
-                                : row.status === 404
-                                ? theme.amber
-                                : "#a78bfa",
-                          }}
-                        >
-                          {row.status}
-                        </span>
-                      </td>
-
-                      <td
-                        style={{
-                          ...tableCell,
-                          fontFamily: fonts.mono,
-                          fontWeight: 700,
-                        }}
-                      >
-                        {row.errors}
-                      </td>
-
-                      <td style={tableCell}>
-                        <div style={{ display: "flex", gap: 4 }}>
-                          {Array.from({ length: 5 }).map((_, j) => (
-                            <div
-                              key={j}
-                              style={{
-                                width: 14,
-                                height: 5,
-                                borderRadius: 3,
-                                background:
-                                  j < Math.ceil(row.errors / 15)
-                                    ? row.status === 403
-                                      ? theme.red
-                                      : theme.amber
-                                    : theme.border,
-                              }}
-                            />
-                          ))}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {activeTab === "resources" && (
-          <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-            <Panel>
-              <SectionHeader title="Top 10 Most Accessed Resources" badge="Aug 1995" />
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart
-                  data={totals.resourceRows}
-                  layout="vertical"
-                  margin={{ top: 0, right: 16, left: 12, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient id="resourceBarFill" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor={theme.amber} stopOpacity={1} />
-                      <stop offset="100%" stopColor={theme.orange} stopOpacity={0.72} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="2 4" stroke={theme.border} horizontal={false} />
-                  <XAxis
-                    type="number"
-                    tick={axisTick}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={fmt}
-                  />
-                  <YAxis
-                    dataKey="label"
-                    type="category"
-                    width={180}
-                    tick={{ ...axisTick, fill: theme.textMuted }}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar
-                    dataKey="count"
-                    name="Requests"
-                    fill="url(#resourceBarFill)"
-                    radius={[0, 4, 4, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </Panel>
-
-            <div className="wide-table-wrap" style={{ ...cardBase, overflow: "hidden" }}>
-              <div style={{ padding: "16px 24px", borderBottom: `1px solid ${theme.border}` }}>
-                <SectionHeader title="Resource Access Log" />
-              </div>
-
-              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 760 }}>
-                <thead>
-                  <tr style={{ background: theme.panelAlt }}>
-                    {["#", "Resource URL", "Request Count", "% of Top 10"].map((h) => (
-                      <th key={h} style={tableHeaderCell}>
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {totals.resourceRows.map((row, i) => (
-                    <tr
-                      key={row.url}
-                      style={{
-                        borderTop: `1px solid ${theme.border}`,
-                        background: i % 2 === 0 ? "transparent" : theme.panelSoft,
-                      }}
-                    >
-                      <td style={{ ...tableCell, color: theme.textSoft, fontFamily: fonts.mono }}>
-                        #{i + 1}
-                      </td>
-
-                      <td
-                        style={{
-                          ...tableCell,
-                          color: "#60a5fa",
-                          fontFamily: fonts.mono,
-                        }}
-                      >
-                        {row.url}
-                      </td>
-
-                      <td
-                        style={{
-                          ...tableCell,
-                          fontFamily: fonts.mono,
-                          fontWeight: 700,
-                        }}
-                      >
-                        {row.count.toLocaleString()}
-                      </td>
-
-                      <td style={tableCell}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div
-                            style={{
-                              flex: 1,
-                              height: 5,
-                              background: theme.border,
-                              borderRadius: 999,
-                              overflow: "hidden",
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: `${row.pct}%`,
-                                height: "100%",
-                                background: theme.amber,
-                                borderRadius: 999,
-                              }}
-                            />
-                          </div>
-                          <span
-                            style={{
-                              width: 38,
-                              textAlign: "right",
-                              fontSize: 11,
-                              color: theme.textMuted,
-                              fontFamily: fonts.mono,
-                            }}
-                          >
-                            {row.pct}%
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div
-              className="resource-summary-grid"
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-                gap: 16,
-              }}
-            >
-              <StatCard
-                label="#1 Resource"
-                value="97,269"
-                sub="/images/nasa-logosmall.gif"
-                icon="🖼"
-                accent={theme.amber}
-              />
-              <StatCard
-                label="Top 10 Total"
-                value={fmt(totals.totalTopResources)}
-                sub="Combined resource requests"
-                icon="📦"
-                accent={theme.blue}
-              />
-              <StatCard
-                label="Homepage Rank"
-                value="#10"
-                sub='"/" among top resources'
-                icon="🏠"
-                accent={theme.green}
-              />
-            </div>
-          </div>
-        )}
+      <main style={s.main}>
+        <TabComponent key={activeTab} />
       </main>
     </div>
   );
